@@ -27,6 +27,8 @@ RiverRaid/
 ├── game_server.py          # Main game server (runs on VPS)
 ├── game_client_local.py    # Local testing client (no SSH)
 ├── game_client_remote.py   # Remote client (connects via SSH)
+├── config_remote.json      # VPS connection configuration (not tracked)
+├── .gitignore              # Excludes config_remote.json
 └── README.md
 ```
 
@@ -90,18 +92,35 @@ python game_client_local.py
 ```
 
 ### Remote Play (VPS Required)
+
+#### 1. Create Configuration File
+
+Create `config_remote.json` in the project root directory:
+```json
+{
+  "vps_host": "123.45.67.89",
+  "ssh_user": "ubuntu",
+  "ssh_key": "C:/Users/YourName/.ssh/river_raid_key"
+}
+```
+
+**Configuration Options:**
+- `vps_host`: Your VPS IP address or hostname
+- `ssh_user`: Username on the VPS (e.g., `ubuntu`, `root`, etc.)
+- `ssh_key`: Full path to your SSH private key file
+
+**Note:** `config_remote.json` is ignored by git to keep credentials private. Never commit this file to version control.
+
+#### 2. Run Remote Client
 ```bash
 # On VPS - Start server
 python3 game_server.py
 
 # On Local Machine - Connect remote client
-# Edit game_client_remote.py with your VPS details:
-# VPS_HOST = 'your-vps-ip'
-# SSH_USER = 'your-username'
-# SSH_KEY = 'path/to/your/private/key'
-
 python game_client_remote.py
 ```
+
+The client will automatically read connection details from `config_remote.json`.
 
 ## SSH Setup
 
@@ -117,13 +136,33 @@ ssh-copy-id -i ~/.ssh/river_raid_key.pub user@your-vps-ip
 ssh -i ~/.ssh/river_raid_key user@your-vps-ip
 ```
 
-### Configure Client
+### Example `config_remote.json`
 
-Update `game_client_remote.py`:
-```python
-VPS_HOST = '123.45.67.89'  # Your VPS IP
-SSH_KEY = '~/.ssh/river_raid_key'  # Path to private key
-SSH_USER = 'LinuxUser'  # Your VPS username
+**Windows:**
+```json
+{
+  "vps_host": "203.0.113.42",
+  "ssh_user": "ubuntu",
+  "ssh_key": "C:/Users/PcNub/.ssh/river_raid_key"
+}
+```
+
+**Linux/Mac:**
+```json
+{
+  "vps_host": "203.0.113.42",
+  "ssh_user": "ubuntu",
+  "ssh_key": "/home/username/.ssh/river_raid_key"
+}
+```
+
+**Using `~` shorthand (may require expansion):**
+```json
+{
+  "vps_host": "203.0.113.42",
+  "ssh_user": "ubuntu",
+  "ssh_key": "~/.ssh/river_raid_key"
+}
 ```
 
 ## Controls
@@ -213,6 +252,65 @@ Game state stored in `/tmp/game_state.json` on VPS:
 - **Input**: Client writes to `/tmp/player_input.json` via SFTP
 - **State**: Client reads from `/tmp/game_state.json` via SFTP
 - **Security**: RSA key authentication, no passwords transmitted
+- **Configuration**: Connection details stored in `config_remote.json` (git-ignored)
+
+## Troubleshooting
+
+### Missing Configuration File
+```
+Error: config_remote.json not found
+```
+**Solution:** Create `config_remote.json` with your VPS details (see Usage section above).
+
+### Invalid Configuration
+```
+Error: config_remote.json is missing one of: vps_host, ssh_user, ssh_key
+```
+**Solution:** Ensure all three fields are present in your `config_remote.json`:
+```json
+{
+  "vps_host": "YOUR_VPS_IP",
+  "ssh_user": "YOUR_USERNAME",
+  "ssh_key": "PATH/TO/YOUR/KEY"
+}
+```
+
+### Connection Issues
+```bash
+# Test SSH connection manually
+ssh -v -i ~/.ssh/river_raid_key user@vps-ip
+
+# Check VPS firewall
+sudo ufw status
+sudo ufw allow 22/tcp
+
+# Verify SSH service
+sudo systemctl status ssh
+```
+
+### Game Not Starting
+```bash
+# Check server is running
+ps aux | grep game_server.py
+
+# Check file permissions
+ls -l /tmp/game_state.json /tmp/player_input.json
+
+# View server logs
+python3 game_server.py  # Check terminal output
+```
+
+### Low FPS
+- Reduce enemy spawn rates in thread functions
+- Increase `time.sleep()` values in threads
+- Check network latency with ping
+
+## Security Notes
+
+- **Never commit `config_remote.json`** to version control (already in `.gitignore`)
+- Store SSH private keys securely (use file permissions `chmod 600` on Linux/Mac)
+- Use strong passphrases for SSH keys
+- Consider using SSH key forwarding for additional security
 
 ## Assignment Compliance
 
@@ -227,4 +325,3 @@ This project fulfills the following requirements:
 7. ✅ **Submission**: Source code + video demo + presentation
 
 ---
-
