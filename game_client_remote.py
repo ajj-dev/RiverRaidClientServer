@@ -231,9 +231,24 @@ class RiverRaidClient:
         pygame.quit()
 
 if __name__ == '__main__':
-    VPS_HOST = '123.45.67.89' # VPS IP Address
-    SSH_KEY = 'C:/Users/PcNub/.ssh/id_rsa' # RSA Key Location
-    SSH_USER = 'LinuxUser' # Username on VPS
-    
+    # Try to open the per-user config file for remote VPS settings
+    try:
+        with open('config_remote.json', 'r') as f:
+            cfg = json.load(f)
+    except FileNotFoundError:
+        # Stop early if the config file is missing
+        print("config_remote.json not found. Please create it with vps_host, ssh_user, ssh_key.")
+        raise
+
+    # Read values from config, with safe defaults if keys are missing
+    VPS_HOST = cfg.get('vps_host', '127.0.0.1')   # VPS IP address or hostname
+    SSH_KEY  = cfg.get('ssh_key', '')             # Path to private SSH key
+    SSH_USER = cfg.get('ssh_user', 'gameserver')  # SSH username on the VPS
+
+    # Basic validation because all three values must be present
+    if not VPS_HOST or not SSH_USER or not SSH_KEY:
+        print("config_remote.json is missing one of: vps_host, ssh_user, ssh_key.")
+        raise SystemExit(1)
+
     client = RiverRaidClient(VPS_HOST, SSH_KEY, SSH_USER)
     client.run()
